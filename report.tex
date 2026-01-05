@@ -1,0 +1,388 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{graphicx}       % For including images
+\usepackage{amsmath}        % For mathematical symbols
+\usepackage{listings}       % For code listings
+\usepackage{xcolor}         % For color in code listings
+\usepackage{hyperref}       % For clickable links
+\usepackage{caption}        % For captions
+\usepackage{subcaption}     % For subfigures
+\usepackage{fancyhdr}       % For headers and footers
+\usepackage{geometry}       % For page margins
+\usepackage{titling}        % For title customizations
+\usepackage{tocbibind}      % For including TOC
+\usepackage[dvipsnames]{xcolor}
+\usepackage{float} 
+\usepackage{longtable}      % For long tables
+\usepackage{booktabs}       % For professional tables
+\usepackage{enumitem}       % Beeter lists
+
+% --- Code Listing Configuration ---
+\lstset{
+    language=C++,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{OliveGreen},
+    stringstyle=\color{Red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    showstringspaces=false,
+    tabsize=4,
+    breaklines=true,
+    breakatwhitespace=true,
+    frame=single,
+    captionpos=b
+}
+
+% Custom Keywords for Project Classes
+\lstset{
+    classoffset=1, 
+    morekeywords={ProcessInfo, ProcessScanner, TUI, RuleEngine, ProcessController, CommandParser, CommandType, Command, Warning, vector, map, string, ifstream}, 
+    keywordstyle=\color{TealBlue}\bfseries, 
+    classoffset=0 
+}
+
+% Margins
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+
+\begin{document}
+
+% --- Check Title Page ---
+\thispagestyle{empty}
+\vspace*{1cm}
+\begin{center}
+    {\Huge\textbf{Advanced Linux Process Manager}} \\
+    \vspace{0.5cm}
+    {\Huge\textbf{System Programming Lab Report}}
+    \vspace{1.5cm}
+
+    % \includegraphics[width=0.3\textwidth]{logo.png} % User can add logo here
+    
+    {\large Session 2023-2027}\\[0.2cm]
+    \vspace{1cm}
+    {\Large\textbf{Submitted By:}}\\[0.6cm]
+    {\large Mohammad Bilal (2023-CS-168)}\\[1.5cm]
+    
+    {\Large\textbf{Supervised By:}}\\[0.6cm]
+    {\large Mr. Nazeef Ul Haq}\\
+    {\large Mr. Waseem}\\[2cm]
+    
+    {\LARGE \textbf{Department of Computer Science}}\\[0.5cm]
+    {\Huge \textbf{University of Engineering and Technology, Lahore}}\\[0.5cm]
+    \vfill
+\end{center}
+
+\newpage
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{Process Manager Project}}
+\fancyhead[R]{OS Lab}
+\fancyfoot[C]{\thepage}
+\fancyfoot[R]{2023-CS-168}
+
+\newpage
+\tableofcontents
+\newpage
+% \listoffigures
+% \newpage
+
+% --- Section 1: Introduction ---
+\section{Introduction}
+
+\subsection{Project Overview}
+The \textbf{Linux Process Manager} is a sophisticated, terminal-based system utility designed to monitor and control processes in a Linux environment (including WSL). Developed in C++17, effectively mimicking and extending functionality found in standard tools like \texttt{top} or \texttt{htop}.
+
+Unlike standard utilities, this project includes an \textbf{AI Rule Engine} that actively monitors process behavior over time. Instead of simply displaying static numbers, the system maintains a historical buffer (60-second rolling window) for every process. This allows it to detect complex anomalies such as memory leaks, zombie processes, and CPU spikes, providing actionable intelligence to the user.
+
+\subsection{Objective & Scope}
+The core objectives of this project were:
+\begin{itemize}
+    \item \textbf{System Call Proficiency}: Mastery of Linux systems programming interfaces (\texttt{ptrace}, \texttt{kill}, \texttt{sysconf}).
+    \item \textbf{File System Parsing}: Deep understanding of the Linux \texttt{/proc} pseudo-filesystem.
+    \item \textbf{Data Structures}: Implementation of custom structures for tracking history and efficient map-based lookups.
+    \item \textbf{UI Design}: Creating a responsive, flicker-free Text User Interface (TUI) using \texttt{ncurses}.
+    \item \textbf{Algorithmic Logic}: Developing heuristics for the "AI" component to analyze resource trends.
+\end{itemize}
+
+\subsection{Feature Summary}
+The application supports a rich set of features:
+\begin{enumerate}
+    \item \textbf{Real-Time Monitoring}: Displays PID, Name, State, Thread counts, CPU\%, Memory (RSS), and Disk I/O speeds.
+    \item \textbf{Historical Analysis}: Tracks resource usage over the last minute to generate trend graphs.
+    \item \textbf{Process Control}: Supports \texttt{kill}, \texttt{pause} (SIGSTOP), \texttt{resume} (SIGCONT), and \texttt{priority} adjustment.
+    \item \textbf{Visualization}: Includes a hierarchical \texttt{tree} view and detailed single-process inspection screens.
+    \item \textbf{AI Safety Guard}: Warns users about potentially malicious or buggy processes (Zombies, Leaks).
+\end{enumerate}
+
+\newpage
+
+% --- Section 2: Comparison ---
+\section{Comparison with Existing Tools}
+
+The custom Process Manager was designed to address specific educational and usability gaps found in traditional tools.
+
+\subsection{Comparison Matrix}
+
+\begin{table}[H]
+    \centering
+    \caption{Feature Comparison with Industry Standards}
+    \begin{tabular}{|l|p{4cm}|p{4cm}|p{4cm}|}
+    \hline
+    \textbf{Feature} & \textbf{Standard 'top'} & \textbf{'htop'} & \textbf{Our Project} \\ \hline
+    \textbf{Interactivity} & Limited (shortcuts) & Good (Mouse/Key) & \textbf{Command-Line Prompt} \\ \hline
+    \textbf{History} & None (Instant only) & None & \textbf{60s Rolling Buffer} \\ \hline
+    \textbf{Analysis} & Passive (User must watch) & Passive & \textbf{Active AI Alerts} \\ \hline
+    \textbf{Visualization} & Raw Text & Bars/Colors & \textbf{ASCII Graphs \& Tree} \\ \hline
+    \textbf{Structure} & Monolithic C & Structured C & \textbf{Modular OOP C++} \\ \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Key Differentiators}
+\begin{itemize}
+    \item \textbf{Command Prompt Paradigm}: While \texttt{top} relies on single-key shortcuts (e.g., press 'k' then type PID), our tool offers a persistent command line at the bottom. This allows for more expressive commands like `filter chrome`, `sort cpu`, or `ai 1234 ignore`. This is more intuitive for users comfortable with shells.
+    \item \textbf{Automated Diagnostics}: A novice user looking at `top` might not notice a process slowly consuming 1MB more RAM every second. Our **Rule Engine** explicitly calculates the regression slope of memory usage and flashes a `MEMORY_LEAK` warning in red, teaching the user what to look for.
+    \item \textbf{Zombie Reaping}: Our tool doesn't just display zombies; it includes logic to actively identify them and, if they are children of the manager itself, clean them up automatically.
+\end{itemize}
+
+\newpage
+
+% --- Section 3: Architecture ---
+\section{System Architecture}
+
+The project follows a rigorous Object-Oriented design, separating concerns into Acquisition, Storage, Analysis, and Presentation layers.
+
+\subsection{Class Diagram Description}
+\begin{itemize}
+    \item \textbf{ProcessInfo}: The fundamental data unit. It acts as a Data Transfer Object (DTO) containing all stats for a single PID. It owns the `std::vector` history buffers.
+    \item \textbf{ProcessScanner}: The "Driver" layer. It interfaces with the OS Kernel via `/proc`. It is responsible for raw file parsing and delta calculations (converting ticks to percentages).
+    \item \textbf{ProcessController}: The "Executor" layer. It abstracts standard C library system calls. It ensures safety (e.g., checking for valid PIDs) before executing destructive actions.
+    \item \textbf{RuleEngine}: The "Brain" layer. It is a pure logic component that takes a read-only map of processes and returns a vector of `Warning` objects. It is stateless between runs, relying on the process history.
+    \item \textbf{TUI}: The "View" layer. It knows nothing about system calls. It simply renders the data it is given using `ncurses` primitives.
+\end{itemize}
+
+\subsection{Data Flow}
+1.  **Tick (100ms)**: The main loop wakes up.
+2.  **Scan**: `ProcessScanner` reads hundreds of files in `/proc`.
+3.  **Update**: It matches existing PIDs to the previous map. If a match is found, it calculates `(Current - Prev)` to derive CPU\% and I/O speeds.
+4.  **Analyze**: The map is passed to `RuleEngine`. Rules are applied (e.g., `check_memory_leak`).
+5.  **Render**: The map + warnings are passed to `TUI`. The table is drawn.
+6.  **Input**: User keystrokes are captured. if `Enter` is pressed, `CommandParser` routes the action to `ProcessController`.
+
+\newpage
+
+% --- Section 4: Deep Dive Features ---
+\section{Detailed Feature Analysis}
+
+\subsection{1. Advanced Process Discovery}
+The `ProcessScanner` does not simply list files. It performs complex correlation.
+\begin{itemize}
+    \item \textbf{Command Line Reconstruction}: It reads `/proc/[pid]/cmdline`, which is null-delimited. The separate arguments are joined to show the full launch command.
+    \item \textbf{User/Parent Mapping}: It reads the `PPID` to build the hierarchy used in the `Tree` view.
+\end{itemize}
+
+\subsection{2. Intelligent Resource Calculation}
+Calculating accurate CPU usage in Linux is non-trivial.
+\begin{enumerate}
+    \item Read process usage: \texttt{utime} (user mode ticks) + \texttt{stime} (kernel mode ticks) from \texttt{/proc/[pid]/stat}.
+    \item Read system usage: Sum of all CPU states (user, nice, system, idle, iowait) from \texttt{/proc/stat}.
+    \item **Formula**:
+    $$ \text{Process} \Delta = (\text{Total}_{\text{now}} - \text{Total}_{\text{prev}}) $$
+    $$ \text{System} \Delta = (\text{SystemTotal}_{\text{now}} - \text{SystemTotal}_{\text{prev}}) $$
+    $$ \text{Usage \%} = \left( \frac{\text{Process} \Delta}{\text{System} \Delta} \right) \times \text{Core Count} \times 100 $$
+\end{enumerate}
+This handling of multi-core normalization ensures that a single thread running at 100\% shows as "100\%" (or "25\%" on a 4-core system depending on `top` mode preferences, we normalized to core count).
+
+\subsection{3. Rule-Based AI Engine}
+The AI is the standout feature. It implements four specific heuristics:
+
+\subsubsection{Rule A: The Zombie Hunter}
+Zombies are dead processes waiting for their parent.
+\begin{lstlisting}[language=C++]
+void RuleEngine::check_stuck_process(const ProcessInfo& p, vector<Warning>& warnings) {
+    if (p.state == "Z") {
+        warnings.push_back({p.pid, "ZOMBIE", "Parent waiting..."});
+    }
+}
+\end{lstlisting}
+
+\subsubsection{Rule B: High CPU Detection}
+A hard threshold is insufficient because short bursts are normal. The engine checks the \textbf{Average} of the last 30 samples.
+\begin{lstlisting}[language=C++]
+// Conceptual Logic
+double avg = calculate_mean(p.cpu_history, 30); // Last 30 seconds
+if (avg > 80.0) {
+    warnings.push_back({p.pid, "HIGH_CPU", "Sustained Loop Detected"});
+}
+\end{lstlisting}
+
+\subsubsection{Rule C: Memory Leak Heuristic}
+This detects "Combustive Growth". The algorithm checks if the memory usage has strictly increased or stayed same (non-decreasing) for 60 seconds, with a net positive growth > 10MB.
+\begin{lstlisting}[language=C++]
+bool is_leaking = true;
+for (size_t i = 1; i < p.mem_history.size(); ++i) {
+    if (p.mem_history[i] < p.mem_history[i-1]) {
+        is_leaking = false; // Usage dropped, probably Garbage Collection
+        break;
+    }
+}
+if (is_leaking && (total_growth > 10_MB)) warn(p);
+\end{lstlisting}
+
+\newpage
+
+% --- Section 5 Implementation ---
+\section{Implementation \& Code Structure}
+
+\subsection{Header Files Overview}
+\begin{itemize}
+    \item \texttt{ProcessInfo.h}: Defines the structure of a process entry. Changes here propagate to all modules.
+    \item \texttt{CommandParser.h}: Defines the grammar of the user command shell.
+    \item \texttt{TUI.h}: Encapsulates the ncurses library interactions.
+\end{itemize}
+
+\subsection{Key Algorithms}
+
+\subsubsection{Sorting Processes}
+Sorting is dynamic based on user selection. We use C++ lambdas for flexibility. This allows extending sorting to any field without rewriting logic.
+
+\begin{lstlisting}[language=C++]
+std::sort(procs.begin(), procs.end(), [mode](auto& a, auto& b) {
+    if (mode == SortMode::CPU) return a.cpu_percent > b.cpu_percent;
+    if (mode == SortMode::MEM) return a.rss > b.rss;
+    return a.pid < b.pid;
+});
+\end{lstlisting}
+
+\subsubsection{Tree View Recursion}
+The `tree` command requires transforming the flat process map into a hierarchical structure. We perform this in $\mathcal{O}(N)$ by building an adjacency list first.
+
+\begin{lstlisting}[language=C++]
+// 1. Build Adjacency List
+map<int, vector<int>> children;
+for (auto& p : processes) children[p.ppid].push_back(p.pid);
+
+// 2. Recursive Render
+void draw_tree(int pid, int depth) {
+    print_indent(depth);
+    print_process(pid);
+    for (int child : children[pid]) {
+        draw_tree(child, depth + 1);
+    }
+}
+\end{lstlisting}
+
+\newpage
+
+% --- Section 6: User Manual ---
+\section{User Manual \& Command Reference}
+
+This section serves as a comprehensive guide for operating the shell.
+
+\subsection{Basic Workflow}
+1.  **Launch**: Run `./process_manager`.
+2.  **Observe**: Watch the main list. Warnings appear in red at the bottom.
+3.  **Command**: Type commands in the prompt footer.
+
+\subsection{Visual Navigation Commands}
+
+\subsubsection{Sorting}
+Organize the chaos. Essential for finding resource hogs.
+\begin{itemize}
+    \item \texttt{sort cpu}: Descending order of CPU usage. Best for finding frozen apps.
+    \item \texttt{sort mem}: Descending order of RAM. Best for finding leaks.
+    \item \texttt{sort pid}: Ascending order of ID. Standard view.
+\end{itemize}
+
+\subsubsection{Filtering}
+Real-time fuzzy search.
+\begin{itemize}
+    \item \texttt{filter <query>}: Only shows rows where Name contains \texttt{<query>}.
+    \item \textbf{Example}: \texttt{filter python} usually shows all ML scripts running.
+    \item \textbf{Reset}: Type \texttt{filter} with no arguments to clear.
+\end{itemize}
+
+\subsubsection{Tree View}
+\begin{itemize}
+    \item \texttt{tree}: Toggles strict parent-child visualization.
+    \item \textbf{Usage}: Extremely useful for seeing which processes were spawned by a shell script or server daemon (e.g., `nginx` spawning workers).
+\end{itemize}
+
+\subsubsection{Deep Inspection}
+\begin{itemize}
+    \item \texttt{info <pid>}: Clears the screen and performs a "Deep Dive".
+    \item \textbf{Displays}:
+        \begin{itemize}
+            \item Exact Memory usage in bytes.
+            \item System vs User time ratio.
+            \item \textbf{ASCII Chart}: A visual bar chart of CPU usage over the last 60 seconds.
+        \end{itemize}
+\end{itemize}
+
+\subsection{Process Control Commands}
+\textit{Warning: These commands affect running software.}
+
+\begin{longtable}{|p{3cm}|p{4cm}|p{7cm}|}
+\hline
+\textbf{Command} & \textbf{Parameters} & \textbf{Detailed Action} \\ \hline
+\texttt{run} & \texttt{<cmd> [args]} & Uses \texttt{fork()} and \texttt{execvp()} to launch a process. \newline Example: \texttt{run sleep 60} creates a background sleeper. \\ \hline
+\texttt{kill} & \texttt{<pid>} & Sends \texttt{SIGTERM (15)}. Gives the process a chance to cleanup files. \\ \hline
+\texttt{pause} & \texttt{<pid>} & Sends \texttt{SIGSTOP (19)}. Forces the OS to unschedule the thread. Good for pausing CPU hogs temporarily. \\ \hline
+\texttt{resume} & \texttt{<pid>} & Sends \texttt{SIGCONT (18)}. Returns a paused process to the run queue. \\ \hline
+\texttt{priority} & \texttt{<pid> <val>} & Calls \texttt{setpriority()}. \newline Val: -20 (High Priority) to 19 (Low). \\ \hline
+\end{longtable}
+
+\subsection{AI Interaction Commands}
+The AI engine is interactive.
+\begin{itemize}
+    \item \texttt{ai <pid> ignore}: Adds the PID to a \texttt{std::set} of ignored IDs. The RuleEngine skips these, silencing warnings.
+    \item \texttt{ai <pid> kill}: A "macro" command that immediately terminates the offender and acknowledges the warning.
+\end{itemize}
+
+\newpage
+
+% --- Section 7: Testing ---
+\section{Testing & Validation Strategy}
+
+To ensure robustness, specific test scenarios were developed.
+
+\subsection{Test Case 1: The Fork Bomb (Stress Test)}
+\textbf{Objective}: Ensure the scanner doesn't crash when thousands of processes appear instantly.
+\textbf{Action}: Triggered a rapid process generator.
+\textbf{Result}: The TUI slowed down due to map insertions but remained stable. The table expanded correctly.
+
+\subsection{Test Case 2: The Zombie Factory}
+\textbf{Objective}: Validate Rule A (Zombie Detection).
+\textbf{Script Used}:
+\begin{lstlisting}[language=bash]
+# A script that creates a child and exits the parent
+(sleep 1 & exec /bin/sleep 5)
+\end{lstlisting}
+\textbf{Observation}: The subprocess becomes orphaned. The Process Manager highlights it with a `[Z]` state and moves it to the bottom or triggers a warning.
+
+\subsection{Test Case 3: Memory Leaker}
+\textbf{Objective}: Validate Rule C (Leak Detection).
+\textbf{Mechanism}: A C++ program allocating 1MB chunks in a loop without freeing.
+\begin{lstlisting}[language=C++]
+while(1) { malloc(1024*1024); sleep(1); }
+\end{lstlisting}
+\textbf{Result}: After approx 45 seconds, the "MEMORY_LEAK" warning appeared in the footer, validating the slope calculation logic.
+
+\subsection{Test Case 4: Permission Handling}
+\textbf{Objective}: Interacting with root processes.
+\textbf{Action}: Attempted `kill 1` (init).
+\textbf{Result}: System call failed with `EPERM`. The Process Controller caught the error and displayed "Permission Denied" in the TUI instead of crashing.
+
+\section{Future Enhancements}
+
+While the system is fully functional, future iterations could include:
+\begin{itemize}
+    \item \textbf{Network I/O}: Parsing \texttt{/proc/net/dev} to show bandwidth per process.
+    \item \textbf{GPU Monitoring}: Integrating \texttt{nvidia-smi} bindings for AI workloads.
+    \item \textbf{Daemon Mode}: Running as a background service that logs anomalies to a file instead of displaying them in TUI.
+\end{itemize}
+
+\section{Conclusion}
+
+The Linux User-Space Process Manager project provided deep insights into the OS kernel's operation. By eschewing standard libraries in favor of raw \texttt{/proc} parsing, we gained a granular understanding of process states, scheduling, and memory management. The addition of the AI engine transforms the tool from a passive monitor to an active system guardian, demonstrating the potential for intelligent OS utilities.
+
+\end{document}

@@ -116,6 +116,10 @@ You can respond to warnings using the `ai` command.
 | **Pause** | `pause <pid>` | Sends `SIGSTOP` to freeze a process. State becomes `T`. |
 | **Resume** | `resume <pid>` | Sends `SIGCONT` to unfreeze. State becomes `S` or `R`. |
 | **Priority**| `priority <pid> <val>`| Sets nice value (e.g., `priority 123 10`). |
+| **Sort** | `sort <cpu\|mem\|pid>` | Sorts the process list (e.g., `sort cpu`). |
+| **Filter** | `filter <text>` | Filters list by name. Empty `filter` clears it. |
+| **Info** | `info <pid>` | Shows detailed stats & history graph for a process. |
+| **Tree** | `tree` | Toggles hierarchical process tree view. |
 | **AI Ignore**| `ai <pid> ignore` | Silences AI warnings for this PID. |
 | **AI Kill** | `ai <pid> kill` | Kills the process (shortcut for resolving warnings). |
 | **AI Pause**| `ai <pid> pause` | Pauses the process. |

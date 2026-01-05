@@ -76,6 +76,32 @@ void TUI::draw_table(const std::map<int, ProcessInfo>& processes) {
 void TUI::draw_footer() {
     int row = LINES - 1;
     attron(COLOR_PAIR(2));
-    mvprintw(row, 0, " Commands: q (quit) ");
+    // Pad with spaces to clear line
+    std::string bar = " Command > " + input_buffer;
+    mvprintw(row, 0, "%s", bar.c_str());
+    for(int i = bar.length(); i < COLS; i++) addch(' ');
+
+    if (!last_message.empty()) {
+        mvprintw(row - 1, 0, "Last Action: %s", last_message.c_str());
+    }
     attroff(COLOR_PAIR(2));
+}
+
+std::string TUI::get_input() {
+    int ch = getch();
+    if (ch == ERR) return "";
+
+    if (ch == '\n' || ch == '\r') {
+        std::string cmd = input_buffer;
+        input_buffer.clear();
+        return cmd;
+    } else if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b') {
+        if (!input_buffer.empty()) {
+            input_buffer.pop_back();
+        }
+    } else if (ch >= 32 && ch <= 126) {
+        input_buffer += (char)ch;
+    }
+    
+    return "";
 }
