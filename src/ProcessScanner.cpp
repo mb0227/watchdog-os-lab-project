@@ -102,30 +102,20 @@ std::map<int, ProcessInfo> ProcessScanner::scan() {
                             unsigned long long sys_delta = current_system_time - prev_system_time;
 
                             if (sys_delta > 0) {
-                                // Multiply by number of cores? 
-                                // Top essentially shows 100% per core. If we want total system usage normalize by cores.
-                                // Standard `top` behavior: single process can be 100%. The prompt implies simple similar-to-top.
-                                // We'll stick to 100% * proc_delta / sys_delta * cpu_count or just plain.
-                                // Actually, /proc/stat lines are sum of all CPUs. 
-                                // So (proc_delta / sys_delta) gives % of total available execution time across all cores.
-                                // To get "top" style (where 4 cores = 400%), we need to multiply by num_cpus.
-                                // Let's just do single-core normalized for now (0-100% total system load) for simplicity 
-                                // OR better: sys_curr - sys_prev is the total time elapsed * num_cpus.
-                                // Wait, no. /proc/stat "cpu" line is the aggregation of all cores.
-                                // So sys_delta IS (wall_time * num_cpus).
-                                // So (proc_delta / sys_delta) * 100 is the % of TOTAL capacity used.
-                                // If we want 100% max per core, we multiply by num_cpus.
-                                // Let's start with % of total system capacity (0-100% total).
-                                p.cpu_percent = 100.0 * proc_delta / sys_delta;
-                                
-                                // Determine number of CPUs to scale to "top" style?
-                                // Let's simplify: Standard prompt asks for "CPU %". Users usually expect 0-100% total or per core.
+                                // Standard prompt asks for "CPU %". Users usually expect 0-100% total or per core.
                                 // Let's stick to simple: proc_delta / sys_delta * cpu_count.
                                 // Actually, let's just count processors.
                                 static long num_processors = sysconf(_SC_NPROCESSORS_ONLN);
-                                p.cpu_percent *= num_processors;
+                                p.cpu_percent = 100.0 * proc_delta / sys_delta * num_processors;
                             }
+                            
+                            // Copy history from previous instance
+                            p.cpu_history = prev_processes[pid].cpu_history;
+                            p.mem_history = prev_processes[pid].mem_history;
                         }
+
+                        // Update history
+                        p.add_history(p.cpu_percent, p.rss);
 
                         current_processes[pid] = p;
                     }
