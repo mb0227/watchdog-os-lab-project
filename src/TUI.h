@@ -20,7 +20,7 @@ private:
     std::string last_message;
     std::vector<Warning> warnings;
 
-    void draw_header();
+    void draw_header(const std::map<int, ProcessInfo>& processes);
     void draw_table(const std::map<int, ProcessInfo>& processes);
     void draw_footer();
     

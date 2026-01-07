@@ -1,5 +1,6 @@
 #include "ProcessController.h"
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <signal.h>
 #include <unistd.h>
 #include <sys/resource.h>
@@ -50,12 +51,16 @@ void ProcessController::runProcess(const std::string& command) {
     pid_t pid = fork();
     if (pid == 0) {
         // Child
-        // Start a new session so it doesn't receive signals meant for the manager?
-        // setsid(); // Optional, depending on desired behavior
-        
         execvp(c_args[0], c_args.data());
         // If execvp returns, it failed
         exit(1);
     } 
     // Parent returns immediately
+}
+
+void ProcessController::reapZombies() {
+    // Non-blocking wait to clean up zombies
+    while (waitpid(-1, nullptr, WNOHANG) > 0) {
+        // Keep reaping until no more dead children
+    }
 }

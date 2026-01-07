@@ -8,4 +8,5 @@ public:
     void resumeProcess(int pid);
     void setPriority(int pid, int value);
     void runProcess(const std::string& command);
+    void reapZombies();
 };

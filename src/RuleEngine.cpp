@@ -6,6 +6,9 @@ std::vector<Warning> RuleEngine::analyze(const std::map<int, ProcessInfo>& proce
     
     for (const auto& pair : processes) {
         const auto& p = pair.second;
+        
+        if (ignored_pids.count(p.pid)) continue;
+        
         check_high_cpu(p, warnings);
         check_cpu_spike(p, warnings);
         check_memory_leak(p, warnings);

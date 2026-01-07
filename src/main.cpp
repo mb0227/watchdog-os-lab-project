@@ -33,6 +33,9 @@ int main() {
     while (running) {
         // 1. Scan at 1s interval (approx 10 ticks of 100ms)
         if (ticks == 0) {
+            // Maintenance: Reap zombies from our 'run' commands
+            controller.reapZombies();
+
             processes = scanner.scan();
             // Run AI Analysis
             auto warnings = engine.analyze(processes);
@@ -81,6 +84,33 @@ int main() {
                     controller.runProcess(full_cmd);
                     tui.set_message("Ran: " + full_cmd);
                }
+            } else if (cmd.type == CommandType::AI) {
+                // ai <pid> <action> [val]
+                if (cmd.args.size() >= 2) {
+                    int pid = std::stoi(cmd.args[0]);
+                    std::string action = cmd.args[1];
+                    
+                    if (action == "ignore") {
+                        engine.ignore_pid(pid);
+                        tui.set_message("AI: Ignored PID " + cmd.args[0]);
+                    } else if (action == "kill") {
+                        controller.killProcess(pid);
+                        tui.set_message("AI: Killed PID " + cmd.args[0]);
+                    } else if (action == "pause") {
+                        controller.pauseProcess(pid);
+                        tui.set_message("AI: Paused PID " + cmd.args[0]);
+                    } else if (action == "priority") {
+                        if (cmd.args.size() >= 3) {
+                             int val = std::stoi(cmd.args[2]);
+                             controller.setPriority(pid, val);
+                             tui.set_message("AI: Priority " + cmd.args[0]);
+                        }
+                    } else {
+                         tui.set_message("AI: Unknown action " + action);
+                    }
+                } else {
+                    tui.set_message("Usage: ai <pid> <action>");
+                }
             } else if (cmd.type == CommandType::PRIORITY) {
                  if (cmd.args.size() >= 2) {
                     int pid = std::stoi(cmd.args[0]);

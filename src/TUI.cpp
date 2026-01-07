@@ -25,16 +25,28 @@ void TUI::close() {
 void TUI::draw(const std::map<int, ProcessInfo>& processes) {
     erase(); // Clear screen
 
-    draw_header();
+    draw_header(processes);
     draw_table(processes);
     draw_footer();
 
     refresh(); // Refresh screen
 }
 
-void TUI::draw_header() {
+void TUI::draw_header(const std::map<int, ProcessInfo>& processes) {
     attron(COLOR_PAIR(2));
-    mvprintw(0, 0, " Linux Process Manager (Phase 3) | Processes: ??? | CPU: ???%% | MEM: ???");
+    
+    // Calculate stats
+    double total_cpu = 0.0;
+    long total_mem_kb = 0;
+    for (const auto& pair : processes) {
+        total_cpu += pair.second.cpu_percent;
+        total_mem_kb += pair.second.rss;
+    }
+    
+    std::string mem_str = std::to_string(total_mem_kb / 1024) + " MB";
+    
+    mvprintw(0, 0, " Linux Process Manager (AI Enabled) | Procs: %lu | CPU: %.1f%% | MEM: %s         ", 
+             processes.size(), total_cpu, mem_str.c_str());
     
     // Fill the rest of the line
     for (int i = 0; i < COLS; ++i) {
