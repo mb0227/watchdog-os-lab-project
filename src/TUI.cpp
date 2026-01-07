@@ -15,6 +15,7 @@ void TUI::init() {
     init_pair(1, COLOR_WHITE, COLOR_BLACK); // Default
     init_pair(2, COLOR_BLACK, COLOR_CYAN);  // Header
     init_pair(3, COLOR_GREEN, COLOR_BLACK); // Running
+    init_pair(4, COLOR_RED, COLOR_BLACK);   // Warning
 }
 
 void TUI::close() {
@@ -75,6 +76,19 @@ void TUI::draw_table(const std::map<int, ProcessInfo>& processes) {
 
 void TUI::draw_footer() {
     int row = LINES - 1;
+    
+    // Warnings area (line above command)
+    if (!warnings.empty()) {
+        attron(COLOR_PAIR(4) | A_BOLD); 
+        
+        std::string warn_msg = " [!] WARNINGS: ";
+        for (const auto& w : warnings) {
+            warn_msg += w.type + " (PID " + std::to_string(w.pid) + ") ";
+        }
+        mvprintw(row - 2, 0, "%s", warn_msg.c_str());
+        attroff(COLOR_PAIR(4) | A_BOLD);
+    }
+    
     attron(COLOR_PAIR(2));
     // Pad with spaces to clear line
     std::string bar = " Command > " + input_buffer;

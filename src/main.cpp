@@ -10,12 +10,14 @@
 
 #include "CommandParser.h"
 #include "ProcessController.h"
+#include "RuleEngine.h"
 
 int main() {
     ProcessScanner scanner;
     TUI tui;
     CommandParser parser;
     ProcessController controller;
+    RuleEngine engine;
     
     try {
         tui.init();
@@ -32,6 +34,9 @@ int main() {
         // 1. Scan at 1s interval (approx 10 ticks of 100ms)
         if (ticks == 0) {
             processes = scanner.scan();
+            // Run AI Analysis
+            auto warnings = engine.analyze(processes);
+            tui.set_warnings(warnings);
         }
         
         if (++ticks >= 10) ticks = 0;
