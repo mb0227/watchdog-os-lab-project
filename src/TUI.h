@@ -24,7 +24,9 @@ public:
     // UI Logic
     void set_sort_mode(SortMode mode) { current_sort = mode; }
     void set_filter(const std::string& f) { filter_text = f; }
+    void set_tree_mode(bool enable) { tree_mode = enable; } // New
     void show_process_details(const ProcessInfo& p);
+    bool is_tree_mode() const { return tree_mode; }
 
 private:
     std::string input_buffer;
@@ -34,8 +36,10 @@ private:
     // UI State
     SortMode current_sort = SortMode::PID;
     std::string filter_text = "";
+    bool tree_mode = false;
 
     void draw_header(size_t visible_count, double total_cpu, long total_mem);
     void draw_table(const std::map<int, ProcessInfo>& processes);
+    void draw_tree(const std::map<int, ProcessInfo>& processes); // New
     void draw_footer();
 };

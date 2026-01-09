@@ -30,6 +30,7 @@ Command CommandParser::parse(const std::string& input) {
     else if (action == "sort") cmd.type = CommandType::SORT;
     else if (action == "filter" || action == "search") cmd.type = CommandType::FILTER;
     else if (action == "info" || action == "details") cmd.type = CommandType::INFO;
+    else if (action == "tree") cmd.type = CommandType::TREE;
     else if (action == "quit" || action == "q") cmd.type = CommandType::QUIT;
     else cmd.type = CommandType::UNKNOWN;
 

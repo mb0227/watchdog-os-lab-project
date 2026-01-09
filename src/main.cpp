@@ -97,6 +97,10 @@ int main() {
                  if (!cmd.args.empty()) f = cmd.args[0];
                  tui.set_filter(f);
                  tui.set_message("Filter: " + (f.empty() ? "Cleared" : f));
+            } else if (cmd.type == CommandType::TREE) {
+                 bool current = tui.is_tree_mode();
+                 tui.set_tree_mode(!current);
+                 tui.set_message("Tree Mode: " + std::string(current ? "OFF" : "ON"));
             } else if (cmd.type == CommandType::INFO) {
                  if (!cmd.args.empty()) {
                      int pid = std::stoi(cmd.args[0]);

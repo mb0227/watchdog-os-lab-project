@@ -50,31 +50,95 @@ void TUI::draw(const std::map<int, ProcessInfo>& processes) {
 
     draw_header(visible_procs.size(), total_cpu, total_mem_kb);
     
-    // Draw Table from sorted vector
-    int row = 2;
-    int max_rows = LINES - 4;
+    if (tree_mode) {
+        draw_tree(processes);
+    } else {
+        // Draw Table from sorted vector
+        int row = 2;
+        int max_rows = LINES - 4;
+        
+        attron(A_BOLD);
+        mvprintw(row++, 0, "%-6s %-20s %-6s %-6s %-8s %-8s %-8s", "PID", "NAME", "ST", "CPU%", "MEM", "READ/s", "WRITE/s");
+        attroff(A_BOLD);
     
-    attron(A_BOLD);
-    mvprintw(row++, 0, "%-8s %-25s %-10s %-10s %-10s", "PID", "NAME", "STATE", "CPU%", "RSS(KB)");
-    attroff(A_BOLD);
-
-    for (const auto& p : visible_procs) {
-        if (row >= max_rows + 2) break;
-        
-        if (p.state == "R") attron(COLOR_PAIR(3));
-        
-        mvprintw(row++, 0, "%-8d %-25s %-10s %-10.1f %-10ld", 
-            p.pid, 
-            p.name.substr(0, 25).c_str(), 
-            p.state.c_str(), 
-            p.cpu_percent, 
-            p.rss);
+        for (const auto& p : visible_procs) {
+            if (row >= max_rows + 2) break;
             
-        if (p.state == "R") attroff(COLOR_PAIR(3));
+            if (p.state == "R") attron(COLOR_PAIR(3));
+            
+            // Format speeds (B/s, KB/s)
+            std::string r_spd = std::to_string(p.io_read_speed);
+            std::string w_spd = std::to_string(p.io_write_speed);
+            if (p.io_read_speed > 1024) r_spd = std::to_string(p.io_read_speed / 1024) + "K";
+            if (p.io_write_speed > 1024) w_spd = std::to_string(p.io_write_speed / 1024) + "K";
+
+            mvprintw(row++, 0, "%-6d %-20s %-6s %-6.1f %-8ld %-8s %-8s", 
+                p.pid, 
+                p.name.substr(0, 20).c_str(), 
+                p.state.c_str(), 
+                p.cpu_percent, 
+                p.rss,
+                r_spd.c_str(),
+                w_spd.c_str());
+                
+            if (p.state == "R") attroff(COLOR_PAIR(3));
+        }
     }
 
     draw_footer();
     refresh();
+}
+
+// Simple recursive function to draw tree
+void draw_tree_recursive(int pid, const std::map<int, std::vector<int>>& children, const std::map<int, ProcessInfo>& processes, int level, int& row, int max_rows) {
+    if (row >= max_rows) return;
+    if (processes.find(pid) == processes.end()) return; // Should not happen if children map built correctly
+
+    const auto& p = processes.at(pid);
+    
+    // Indentation
+    std::string indent = "";
+    for(int i=0; i<level; i++) indent += "  ";
+    
+    std::string disp_name = indent + "|- " + p.name + " (" + std::to_string(pid) + ")";
+    
+    mvprintw(row++, 0, "%-60s [%s]", disp_name.substr(0, 60).c_str(), p.state.c_str());
+    
+    if (children.count(pid)) {
+        for (int child_pid : children.at(pid)) {
+            draw_tree_recursive(child_pid, children, processes, level + 1, row, max_rows);
+        }
+    }
+}
+
+void TUI::draw_tree(const std::map<int, ProcessInfo>& processes) {
+    // 1. Build hierarchy
+    std::map<int, std::vector<int>> children;
+    std::vector<int> roots;
+    
+    for (const auto& pair : processes) {
+        int pid = pair.first;
+        int ppid = pair.second.ppid;
+        
+        if (processes.count(ppid)) {
+            children[ppid].push_back(pid);
+        } else {
+            // If parent not in our list (e.g. kthreadd or we missed it), treat as root
+            roots.push_back(pid);
+        }
+    }
+    
+    // 2. Draw
+    int row = 2;
+    int max_rows = LINES - 4;
+    
+    attron(A_BOLD);
+    mvprintw(row++, 0, " PROCESS TREE VIEW (PID Map)");
+    attroff(A_BOLD);
+    
+    for (int root : roots) {
+        draw_tree_recursive(root, children, processes, 0, row, max_rows);
+    }
 }
 
 void TUI::draw_header(size_t visible_count, double total_cpu, long total_mem) {

@@ -13,6 +13,7 @@ enum class CommandType {
     SORT,
     FILTER,
     INFO,
+    TREE,
     QUIT,
     UNKNOWN
 };

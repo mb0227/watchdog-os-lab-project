@@ -91,9 +91,23 @@ std::map<int, ProcessInfo> ProcessScanner::scan() {
                         // rss is in pages, convert to KB
                         long rss_kb = rss * page_size_kb;
 
-                        ProcessInfo p(pid, name, state_str, utime, stime, rss_kb);
+                        // Read I/O stats from /proc/[pid]/io
+                        unsigned long long r_bytes = 0, w_bytes = 0;
+                        std::ifstream io_file(entry.path().string() + "/io");
+                        if (io_file.is_open()) {
+                            std::string io_line;
+                            while (std::getline(io_file, io_line)) {
+                                if (io_line.find("rchar:") == 0) {
+                                    r_bytes = std::stoull(io_line.substr(6));
+                                } else if (io_line.find("wchar:") == 0) {
+                                    w_bytes = std::stoull(io_line.substr(6));
+                                }
+                            }
+                        }
 
-                        // Calculate CPU usage
+                        ProcessInfo p(pid, name, state_str, ppid, utime, stime, rss_kb, r_bytes, w_bytes);
+
+                        // Calculate CPU usage & IO Speed
                         if (prev_processes.count(pid) && prev_system_time > 0) {
                             unsigned long long total_time = utime + stime;
                             unsigned long long prev_total_time = prev_processes[pid].utime + prev_processes[pid].stime;
@@ -108,6 +122,15 @@ std::map<int, ProcessInfo> ProcessScanner::scan() {
                                 static long num_processors = sysconf(_SC_NPROCESSORS_ONLN);
                                 p.cpu_percent = 100.0 * proc_delta / sys_delta * num_processors;
                             }
+                            
+                            // IO Speed (Bytes per second, roughly, assuming 1s interval)
+                            // Ideally divide by wall clock delta, but assumption is ~1s.
+                            // If we tracked exact timestamps we could be more precise.
+                            // For this lab, basic delta is fine.
+                            if (p.io_read_bytes >= prev_processes[pid].io_read_bytes)
+                                p.io_read_speed = p.io_read_bytes - prev_processes[pid].io_read_bytes;
+                            if (p.io_write_bytes >= prev_processes[pid].io_write_bytes)
+                                p.io_write_speed = p.io_write_bytes - prev_processes[pid].io_write_bytes;
                             
                             // Copy history from previous instance
                             p.cpu_history = prev_processes[pid].cpu_history;
