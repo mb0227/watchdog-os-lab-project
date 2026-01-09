@@ -10,6 +10,9 @@ enum class CommandType {
     PRIORITY,
     RUN,
     AI,
+    SORT,
+    FILTER,
+    INFO,
     QUIT,
     UNKNOWN
 };

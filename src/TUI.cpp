@@ -23,56 +23,44 @@ void TUI::close() {
 }
 
 void TUI::draw(const std::map<int, ProcessInfo>& processes) {
-    erase(); // Clear screen
+    erase();
 
-    draw_header(processes);
-    draw_table(processes);
-    draw_footer();
-
-    refresh(); // Refresh screen
-}
-
-void TUI::draw_header(const std::map<int, ProcessInfo>& processes) {
-    attron(COLOR_PAIR(2));
-    
-    // Calculate stats
+    // 1. Calculate stats & Filter/Sort preparation
+    std::vector<ProcessInfo> visible_procs;
     double total_cpu = 0.0;
     long total_mem_kb = 0;
+
     for (const auto& pair : processes) {
-        total_cpu += pair.second.cpu_percent;
-        total_mem_kb += pair.second.rss;
-    }
-    
-    std::string mem_str = std::to_string(total_mem_kb / 1024) + " MB";
-    
-    mvprintw(0, 0, " Linux Process Manager (AI Enabled) | Procs: %lu | CPU: %.1f%% | MEM: %s         ", 
-             processes.size(), total_cpu, mem_str.c_str());
-    
-    // Fill the rest of the line
-    for (int i = 0; i < COLS; ++i) {
-        // Just simple padding if needed, but mvprintw overwrites
-    }
-    attroff(COLOR_PAIR(2));
-}
+        const auto& p = pair.second;
+        total_cpu += p.cpu_percent;
+        total_mem_kb += p.rss;
 
-void TUI::draw_table(const std::map<int, ProcessInfo>& processes) {
+        // Filtering
+        if (filter_text.empty() || p.name.find(filter_text) != std::string::npos) {
+            visible_procs.push_back(p);
+        }
+    }
+
+    // Sorting
+    std::sort(visible_procs.begin(), visible_procs.end(), [this](const ProcessInfo& a, const ProcessInfo& b) {
+        if (current_sort == SortMode::CPU) return a.cpu_percent > b.cpu_percent;
+        if (current_sort == SortMode::MEM) return a.rss > b.rss;
+        return a.pid < b.pid; // Default PID ascending
+    });
+
+    draw_header(visible_procs.size(), total_cpu, total_mem_kb);
+    
+    // Draw Table from sorted vector
     int row = 2;
-    int max_rows = LINES - 4; // Reserve space for header and footer
-
-    // Table Header
+    int max_rows = LINES - 4;
+    
     attron(A_BOLD);
     mvprintw(row++, 0, "%-8s %-25s %-10s %-10s %-10s", "PID", "NAME", "STATE", "CPU%", "RSS(KB)");
     attroff(A_BOLD);
 
-    // Simple sorting or just iterating (map is sorted by PID key)
-    // To sort by CPU, we'd need a vector. For now, just PID order.
-    
-    for (const auto& pair : processes) {
-        if (row >= max_rows + 2) break; // Screen full
-
-        const auto& p = pair.second;
+    for (const auto& p : visible_procs) {
+        if (row >= max_rows + 2) break;
         
-        // Color code for state?
         if (p.state == "R") attron(COLOR_PAIR(3));
         
         mvprintw(row++, 0, "%-8d %-25s %-10s %-10.1f %-10ld", 
@@ -84,6 +72,61 @@ void TUI::draw_table(const std::map<int, ProcessInfo>& processes) {
             
         if (p.state == "R") attroff(COLOR_PAIR(3));
     }
+
+    draw_footer();
+    refresh();
+}
+
+void TUI::draw_header(size_t visible_count, double total_cpu, long total_mem) {
+    attron(COLOR_PAIR(2));
+    std::string mem_str = std::to_string(total_mem / 1024) + " MB";
+    std::string sort_str = (current_sort == SortMode::CPU ? "CPU" : (current_sort == SortMode::MEM ? "MEM" : "PID"));
+    if (!filter_text.empty()) sort_str += " [F: " + filter_text + "]";
+
+    mvprintw(0, 0, " Linux Process Manager (AI Enabled) | Procs: %lu | CPU: %.1f%% | MEM: %s | Sort: %s   ", 
+             visible_count, total_cpu, mem_str.c_str(), sort_str.c_str());
+    
+    for (int i = 0; i < COLS; ++i) { /* clean rest if needed */ }
+    attroff(COLOR_PAIR(2));
+}
+
+void TUI::show_process_details(const ProcessInfo& p) {
+    erase();
+    int row = 2;
+    
+    attron(COLOR_PAIR(2) | A_BOLD);
+    mvprintw(0, 0, " PROCESS DETAILS: %s (PID: %d) ", p.name.c_str(), p.pid);
+    attroff(COLOR_PAIR(2) | A_BOLD);
+
+    mvprintw(row++, 2, "State: %s", p.state.c_str());
+    mvprintw(row++, 2, "CPU Usage: %.1f%%", p.cpu_percent);
+    mvprintw(row++, 2, "Memory RSS: %ld KB", p.rss);
+    mvprintw(row++, 2, "User Time: %llu ticks", p.utime);
+    mvprintw(row++, 2, "System Time: %llu ticks", p.stime);
+    
+    row++;
+    attron(A_BOLD);
+    mvprintw(row++, 2, "CPU History (Last 60s):");
+    attroff(A_BOLD);
+    
+    // Simple bar chart for CPU
+    // 100% = 50 chars width
+    for (double val : p.cpu_history) {
+        if (row >= LINES - 3) break;
+        int width = (int)(val / 2.0);
+        if (width > 50) width = 50;
+        
+        mvprintw(row, 4, "%.1f%% ", val);
+        for(int i=0; i<width; i++) addch('|');
+        row++;
+    }
+
+    mvprintw(LINES-1, 0, "Press ANY KEY to return...");
+    refresh();
+    
+    nodelay(stdscr, FALSE); // Blocking input
+    getch();
+    nodelay(stdscr, TRUE);  // Restore non-blocking
 }
 
 void TUI::draw_footer() {

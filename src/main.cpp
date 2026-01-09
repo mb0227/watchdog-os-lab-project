@@ -84,6 +84,28 @@ int main() {
                     controller.runProcess(full_cmd);
                     tui.set_message("Ran: " + full_cmd);
                }
+            } else if (cmd.type == CommandType::SORT) {
+                 if (!cmd.args.empty()) {
+                     std::string mode = cmd.args[0];
+                     if (mode == "cpu") tui.set_sort_mode(SortMode::CPU);
+                     else if (mode == "mem") tui.set_sort_mode(SortMode::MEM);
+                     else tui.set_sort_mode(SortMode::PID);
+                     tui.set_message("Sort: " + mode);
+                 }
+            } else if (cmd.type == CommandType::FILTER) {
+                 std::string f = "";
+                 if (!cmd.args.empty()) f = cmd.args[0];
+                 tui.set_filter(f);
+                 tui.set_message("Filter: " + (f.empty() ? "Cleared" : f));
+            } else if (cmd.type == CommandType::INFO) {
+                 if (!cmd.args.empty()) {
+                     int pid = std::stoi(cmd.args[0]);
+                     if (processes.count(pid)) {
+                         tui.show_process_details(processes[pid]);
+                     } else {
+                         tui.set_message("PID not found");
+                     }
+                 }
             } else if (cmd.type == CommandType::AI) {
                 // ai <pid> <action> [val]
                 if (cmd.args.size() >= 2) {

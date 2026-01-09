@@ -19,9 +19,6 @@ Command CommandParser::parse(const std::string& input) {
     if (parts.empty()) return cmd;
 
     std::string action = parts[0];
-    // Case insensitive command match?
-    // User requested "simple, explicit". Let's treat them as lowercase usually, but system commands might be case sensitive.
-    // Let's force action to lowercase.
     std::transform(action.begin(), action.end(), action.begin(), ::tolower);
 
     if (action == "kill") cmd.type = CommandType::KILL;
@@ -30,10 +27,12 @@ Command CommandParser::parse(const std::string& input) {
     else if (action == "priority") cmd.type = CommandType::PRIORITY;
     else if (action == "run") cmd.type = CommandType::RUN;
     else if (action == "ai") cmd.type = CommandType::AI;
+    else if (action == "sort") cmd.type = CommandType::SORT;
+    else if (action == "filter" || action == "search") cmd.type = CommandType::FILTER;
+    else if (action == "info" || action == "details") cmd.type = CommandType::INFO;
     else if (action == "quit" || action == "q") cmd.type = CommandType::QUIT;
     else cmd.type = CommandType::UNKNOWN;
 
-    // Remaining parts are args
     if (parts.size() > 1) {
         cmd.args.assign(parts.begin() + 1, parts.end());
     }
